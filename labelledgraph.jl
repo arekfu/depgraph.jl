@@ -57,8 +57,8 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   if label_len==nothing
     label_len = typemax(Int)
   end
-  tr_labels = [truncate_string(replace(l, "t4", ""), label_len) for l in labels]
-  lines = ["digraph $name {"]
+  tr_labels = [truncate_string(l, label_len) for l in labels]
+  lines = ["digraph \"$name\" {"]
   if root==nothing
     from = find_root(g)
   else
@@ -91,8 +91,9 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
 end
 
 function to_dotfile(graph::LabelledDiGraph, name::AbstractString; kwargs...)
-  open("$name.dot", "w") do outfile
-    write(outfile, to_dot_as_string(graph, name; kwargs...))
+  open("$name", "w") do outfile
+    graphname = first(split(name, '.', limit=2))
+    write(outfile, to_dot_as_string(graph, graphname; kwargs...))
   end
 end
 

@@ -36,7 +36,7 @@ for file in parsed_args["OBJFILE"]
   file_deps = Set{ASCIIString}()
   bfile = last(rsplit(file, '/', limit=2))
   bfile_arr = rsplit(bfile, '.')
-  key = bfile_arr[1]
+  key = replace(bfile_arr[1], "t4", "")
 
   command = `nm -g -C $file`
   deps = readall(command)

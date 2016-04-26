@@ -12,6 +12,20 @@ arg_settings = ArgParseSettings()
     help = "maximum label length"
     arg_type = Int
     default = 20
+  "-t", "--transitive-reduction"
+    help = "apply transitive reduction"
+    action = :store_true
+  "-c", "--condensation"
+    help = "apply condensation"
+    action = :store_true
+  "-f", "--focus"
+    help = "focus on the given nodes"
+    arg_type = AbstractString
+    action = :append_arg
+  "-n", "--neighborhood-size"
+    help = "size of the neighborhood to plot"
+    arg_type = Int
+    default = nothing
   "DICTFILE"
     help = "file containing the dependency dictionary"
     arg_type = AbstractString
@@ -33,6 +47,18 @@ end
 
 dict_filename = parsed_args["DICTFILE"]
 
+do_transitive_reduction = parsed_args["transitive-reduction"]
+do_condensation = parsed_args["condensation"]
+
+focus_nodes = parsed_args["focus"]
+
+neigh_size = parsed_args["neighborhood-size"]
+if neigh_size==nothing
+  neigh_size = typemax(Int)
+elseif isempty(focus_nodes)
+  error("the -n option does not make sense without -f")
+end
+
 # script starts here
 
 using JLD       # for persistency
@@ -48,23 +74,32 @@ info("converting to LightGraphs.DiGraph...")
 graph = convert(LabelledDiGraph, depgraph)
 
 info("generating subgraph...")
-generator_indices = find(l -> contains(l, "geomROOT"), graph.labels)
-subgraph = egonet(graph, generator_indices, typemax(Int))
-info("subgraph has $(nv(subgraph)) vertices")
+if !isempty(focus_nodes)
+  focus_regex = Regex(join(focus_nodes, '|'))
+  generator_indices = find(l -> ismatch(focus_regex, l), graph.labels)
+else
+  generator_indices = collect(1:nv(graph))
+end
+graph = egonet(graph, generator_indices, neigh_size)
+info("subgraph has $(nv(graph)) vertices")
 
 info("computing strongly connected components...")
-scc, cond_labels = strongly_connected_components(subgraph)
+scc, cond_labels = strongly_connected_components(graph)
 nontrivial_scc = length(find(s -> length(s)>1, scc))
 largest_scc = maximum(map(length, scc))
 info("subgraph has $(length(scc)) scc ($nontrivial_scc non-trivial, ",
      "largest=$largest_scc)")
 
-info("condensing...")
-cond_depgraph = condensation(subgraph)
+if do_condensation
+  info("condensing...")
+  graph = condensation(graph)
+end
 
-info("reducing...")
-red_depgraph = transitive_reduce(cond_depgraph)
-info("reduced subgraph has $(nv(red_depgraph)) vertices")
+if do_transitive_reduction
+  info("reducing...")
+  graph = transitive_reduce(graph)
+  info("reduced subgraph has $(nv(graph)) vertices")
+end
 
 info("saving...")
-to_dotfile(red_depgraph, "red_depgraph"; root=1, label_len=label_len)
+to_dotfile(graph, output_filename; root=1, label_len=label_len)
