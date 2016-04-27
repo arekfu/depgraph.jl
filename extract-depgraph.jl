@@ -9,6 +9,10 @@ arg_settings = ArgParseSettings()
   "-o", "--output"
     help = "name of the output file"
     arg_type = AbstractString
+  "-s", "--suppress"
+    help = "suppress a string from the object file names"
+    arg_type = AbstractString
+    default = ""
   "OBJFILE"
     help = "object file to analyse"
     arg_type = AbstractString
@@ -23,6 +27,7 @@ if parsed_args["output"] == nothing
 else
   output_filename = parsed_args["output"]
 end
+suppress = parsed_args["suppress"]
 
 typealias GraphDict Dict{ASCIIString, Set{ASCIIString}}
 
@@ -36,7 +41,10 @@ for file in parsed_args["OBJFILE"]
   file_deps = Set{ASCIIString}()
   bfile = last(rsplit(file, '/', limit=2))
   bfile_arr = rsplit(bfile, '.')
-  key = replace(bfile_arr[1], "t4", "")
+  key = bfile_arr[1]
+  if !isempty(suppress)
+    key = replace(key, suppress, "")
+  end
 
   command = `nm -g -C $file`
   deps = readall(command)
