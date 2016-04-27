@@ -1,2 +1,4 @@
 *.dot
 *.pdf
+.*.swp
+*.jld
