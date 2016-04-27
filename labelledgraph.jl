@@ -126,9 +126,9 @@ function neighborhood(graph::DiGraph, vertices::Vector{Int}, dist::Int; kwargs..
 end
 
 function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int; kwargs...)
-  new_vertices = neighborhood(graph.graph, vertices, dist; kwargs...)
+  new_vertices::Vector{Int} = neighborhood(graph.graph, vertices, dist; kwargs...)
   graph′ = induced_subgraph(graph.graph, new_vertices)
-  LabelledDiGraph(graph′, graph.labels[new_vertices])
+  new_vertices, LabelledDiGraph(graph′, graph.labels[new_vertices])
 end
 
 function truncate_string(s::AbstractString, len::Int)
