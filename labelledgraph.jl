@@ -72,7 +72,9 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   for from in g.vertices
     full_label = labels[from]
     from_label = tr_labels[from]
-    if highlight!=nothing && ismatch(highlight, full_label)
+    if startswith(from_label, "...")
+      push!(lines, "\"$from_label\" [fillcolor=white,label=\"...\"]")
+    elseif highlight!=nothing && ismatch(highlight, full_label)
       push!(lines, "\"$from_label\" [fillcolor=firebrick]")
     else
       n = count(c->c==':', full_label) + 1
@@ -132,6 +134,8 @@ function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int; kwargs
 end
 
 function truncate_string(s::AbstractString, len::Int)
+  startswith(s, "...") && return s
+
   n = count(c->c==':', s)
   if len>length(s)
     tr = s[1:end]
@@ -186,3 +190,26 @@ function transitive_reduce(graph::LabelledDiGraph)
   LabelledDiGraph(g′, graph.labels)
 end
 
+function add_ellipsis_nodes(complete::LabelledDiGraph,
+                             truncated::LabelledDiGraph,
+                             vertices::Vector{Int})
+  vset = Set{Int}(vertices)
+  needs_ellipsis_node = []
+  for (i, v) in enumerate(vertices)
+    neighbors = neighborhood(complete.graph, v, 1)
+    if any(v′ -> v′ ∉ vset, neighbors)
+      push!(needs_ellipsis_node, i)
+    end
+  end
+
+  n_ell = length(needs_ellipsis_node)
+  decorated = copy(truncated.graph)
+  n_orig = nv(decorated)
+  add_vertices!(decorated, n_ell)
+  labels = copy(truncated.labels)
+  append!(labels, map(i -> string("...", i), 1:n_ell))
+  for (i, iv) in enumerate(needs_ellipsis_node)
+    add_edge!(decorated, iv, n_orig + i)
+  end
+  LabelledDiGraph(decorated, labels)
+end

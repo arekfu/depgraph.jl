@@ -26,6 +26,9 @@ arg_settings = ArgParseSettings()
     help = "size of the neighborhood to plot"
     arg_type = Int
     default = nothing
+  "-e", "--ellipsis-nodes"
+    help = "add ellipsis nodes to indicate which edges have been cut when -n is used"
+    action = :store_true
   "DICTFILE"
     help = "file containing the dependency dictionary"
     arg_type = AbstractString
@@ -49,6 +52,7 @@ dict_filename = parsed_args["DICTFILE"]
 
 do_transitive_reduction = parsed_args["transitive-reduction"]
 do_condensation = parsed_args["condensation"]
+do_ellipsis_nodes = parsed_args["ellipsis-nodes"]
 
 focus_nodes = parsed_args["focus"]
 
@@ -81,8 +85,14 @@ else
   focus_regex = nothing
   generator_indices = collect(1:nv(graph))
 end
-graph = egonet(graph, generator_indices, neigh_size)
+new_vertices, graph′ = egonet(graph, generator_indices, neigh_size)
 info("subgraph has $(nv(graph)) vertices")
+
+if do_ellipsis_nodes
+  info("adding ellipsis nodes...")
+  graph′ = add_ellipsis_nodes(graph, graph′, new_vertices)
+end
+graph = graph′
 
 info("computing strongly connected components...")
 scc, cond_labels = strongly_connected_components(graph)
