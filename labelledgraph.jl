@@ -51,7 +51,7 @@ function induced_subgraph(g :: LabelledDiGraph, iter)
 end
 
 function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
-                          root=nothing, label_len=nothing)
+                          root=nothing, label_len=nothing, highlight=nothing)
   g = graph.graph
   labels = graph.labels
   if label_len==nothing
@@ -69,12 +69,17 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   push!(lines, "rankdir=LR;")
   push!(lines, "node [shape=box, style=filled];")
 
-  for from = g.vertices
+  for from in g.vertices
     full_label = labels[from]
-    n = count(c->c==':', full_label) + 1
-    if n>1
-      from_label = tr_labels[from]
-      push!(lines, "\"$from_label\" [fillcolor=red]")
+    from_label = tr_labels[from]
+    if highlight!=nothing && ismatch(highlight, full_label)
+      push!(lines, "\"$from_label\" [fillcolor=firebrick]")
+    else
+      n = count(c->c==':', full_label) + 1
+      if n>1
+        from_label = tr_labels[from]
+        push!(lines, "\"$from_label\" [fillcolor=dodgerblue]")
+      end
     end
   end
 
@@ -125,13 +130,17 @@ function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int; kwargs
 end
 
 function truncate_string(s::AbstractString, len::Int)
-  n = count(c->c==':', s) + 1
+  n = count(c->c==':', s)
   if len>length(s)
     tr = s[1:end]
   else
     tr = string(s[1:len], "...")
   end
-  return string(tr, "($n)")
+
+  if n>0
+    tr = string(tr, "($(n+1))")
+  end
+  tr
 end
 
 condense_labels(graph::LabelledDiGraph, vertices::Vector{Int}) =

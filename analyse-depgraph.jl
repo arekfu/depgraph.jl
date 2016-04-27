@@ -78,6 +78,7 @@ if !isempty(focus_nodes)
   focus_regex = Regex(join(focus_nodes, '|'))
   generator_indices = find(l -> ismatch(focus_regex, l), graph.labels)
 else
+  focus_regex = nothing
   generator_indices = collect(1:nv(graph))
 end
 graph = egonet(graph, generator_indices, neigh_size)
@@ -102,4 +103,4 @@ if do_transitive_reduction
 end
 
 info("saving...")
-to_dotfile(graph, output_filename; root=1, label_len=label_len)
+to_dotfile(graph, output_filename; highlight=focus_regex, label_len=label_len)
