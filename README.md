@@ -1,5 +1,5 @@
-depgraph.jl
-==========
+`depgraph.jl`
+=============
 
 A set of simple tools to generate and analyse dependency graphs between object
 files. It is written in Julia.
@@ -13,10 +13,12 @@ Julia package dependencies:
 From your Julia prompt, running the following commands will install all the
 dependencies:
 
-    julia> Pkg.add("JLD")
-    julia> Pkg.add("ArgParse")
-    julia> Pkg.add("LightGraphs")
-    julia> Pkg.checkout("LightGraphs")
+```julia
+julia> Pkg.add("JLD")
+julia> Pkg.add("ArgParse")
+julia> Pkg.add("LightGraphs")
+julia> Pkg.checkout("LightGraphs")
+```
 
 
 Usage
@@ -43,22 +45,27 @@ Examples
 --------
 
 Construct a dependency graph:
-
-    $ ./extract-depgraph.jl -o depgraph.jld foo.o bar.o baz.o quux.o
+```bash
+$ ./extract-depgraph.jl -o depgraph.jld foo.o bar.o baz.o quux.o
+```
 
 Inspect the neighborhood of node `bar`; i.e. nodes that can be reached from
 `bar`; object files on which `bar.o` depends:
-
-    $ ./analyse-depgraph.jl -f bar -o bar.dot depgraph.jld
+```bash
+$ ./analyse-depgraph.jl -f bar -o bar.dot depgraph.jld
+```
 
 Likewise, for the joint neighbourhood of nodes `bar` and `baz`:
-
-    $ ./analyse-depgraph.jl -f bar -f baz -o bar-baz.dot depgraph.jld
+```bash
+$ ./analyse-depgraph.jl -f bar -f baz -o bar-baz.dot depgraph.jld
+```
 
 Limit the neighborhood to distance 2:
-
-    $ ./analyse-depgraph.jl -f bar -n 2 -o bar.dot depgraph.jld
+```bash
+$ ./analyse-depgraph.jl -f bar -n 2 -o bar.dot depgraph.jld
+```
 
 Convert the resulting `.dot` file to PDF:
-
-    $ dot -Tpdf bar.dot >bar.pdf
+```bash
+$ dot -Tpdf bar.dot >bar.pdf
+```
