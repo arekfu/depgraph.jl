@@ -105,9 +105,11 @@ end
 function find_root(graph::DiGraph)
   node = first(graph.vertices)
   el = out_neighbors(graph, node)
+  visited = Set{typeof(node)}()
   while !isempty(el)
+    push!(visited, node)
     node = first(el)
-    el = out_neighbors(graph, node)
+    el = setdiff(out_neighbors(graph, node), visited)
   end
   node
 end
