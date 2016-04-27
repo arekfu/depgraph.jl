@@ -29,7 +29,7 @@ typealias GraphDict Dict{ASCIIString, Set{ASCIIString}}
 file_to_deps = Dict{ASCIIString, Set{ASCIIString}}()
 syms_to_files = Dict{ASCIIString, ASCIIString}()
 
-println("collecting symbols...")
+info("collecting symbols...")
 
 for file in parsed_args["OBJFILE"]
   file_syms = Set{ASCIIString}()
@@ -70,7 +70,7 @@ for file in parsed_args["OBJFILE"]
 
 end
 
-println("constructing depgraph...")
+info("constructing depgraph...")
 depgraph = Dict{ASCIIString, Set{ASCIIString}}()
 
 for (file::ASCIIString, deps) in file_to_deps
@@ -84,5 +84,5 @@ for (file::ASCIIString, deps) in file_to_deps
   end
 end
 
-println("saving to $output_filename...")
+info("saving to $output_filename...")
 @save(output_filename, depgraph)
