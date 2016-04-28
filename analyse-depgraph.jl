@@ -26,8 +26,8 @@ arg_settings = ArgParseSettings()
     help = "size of the neighborhood to plot"
     arg_type = Int
     default = nothing
-  "-e", "--ellipsis-nodes"
-    help = "add ellipsis nodes to indicate which edges have been cut when -n is used"
+  "-e", "--ellipsis-edges"
+    help = "add ellipsis edges to indicate where the graph was cut by the -n option"
     action = :store_true
   "DICTFILE"
     help = "file containing the dependency dictionary"
@@ -52,7 +52,7 @@ dict_filename = parsed_args["DICTFILE"]
 
 do_transitive_reduction = parsed_args["transitive-reduction"]
 do_condensation = parsed_args["condensation"]
-do_ellipsis_nodes = parsed_args["ellipsis-nodes"]
+do_ellipsis_edges = parsed_args["ellipsis-edges"]
 
 focus_nodes = parsed_args["focus"]
 
@@ -88,9 +88,9 @@ end
 new_vertices, graph′ = egonet(graph, generator_indices, neigh_size)
 info("subgraph has $(nv(graph)) vertices")
 
-if do_ellipsis_nodes
-  info("adding ellipsis nodes...")
-  graph′ = add_ellipsis_nodes(graph, graph′, new_vertices)
+if do_ellipsis_edges
+  info("adding ellipsis edges...")
+  graph′ = add_ellipsis_edges(graph, graph′, new_vertices)
 end
 graph = graph′
 

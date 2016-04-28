@@ -68,12 +68,13 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   push!(lines, "root=\"$from_label\";")
   push!(lines, "rankdir=LR;")
   push!(lines, "node [shape=box, style=filled];")
+  push!(lines, "edge [arrowhead=onormal];")
 
   for from in g.vertices
     full_label = labels[from]
     from_label = tr_labels[from]
     if startswith(from_label, "...")
-      push!(lines, "\"$from_label\" [fillcolor=white,label=\"...\"]")
+      push!(lines, "\"$from_label\" [style=invis]")
     elseif highlight!=nothing && ismatch(highlight, full_label)
       push!(lines, "\"$from_label\" [fillcolor=firebrick]")
     else
@@ -90,7 +91,11 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
     tos = in_neighbors(g, from)
     for to = tos
       to_label = tr_labels[to]
-      push!(lines, "\"$to_label\" -> \"$from_label\"")
+      if startswith(from_label, "...")
+        push!(lines, "\"$to_label\" -> \"$from_label\" [style=dotted]")
+      else
+        push!(lines, "\"$to_label\" -> \"$from_label\"")
+      end
     end
   end
   push!(lines, "}\n")
@@ -190,25 +195,25 @@ function transitive_reduce(graph::LabelledDiGraph)
   LabelledDiGraph(g′, graph.labels)
 end
 
-function add_ellipsis_nodes(complete::LabelledDiGraph,
+function add_ellipsis_edges(complete::LabelledDiGraph,
                              truncated::LabelledDiGraph,
                              vertices::Vector{Int})
   vset = Set{Int}(vertices)
-  needs_ellipsis_node = []
+  needs_ellipsis_edge = []
   for (i, v) in enumerate(vertices)
     neighbors = neighborhood(complete.graph, v, 1)
     if any(v′ -> v′ ∉ vset, neighbors)
-      push!(needs_ellipsis_node, i)
+      push!(needs_ellipsis_edge, i)
     end
   end
 
-  n_ell = length(needs_ellipsis_node)
+  n_ell = length(needs_ellipsis_edge)
   decorated = copy(truncated.graph)
   n_orig = nv(decorated)
   add_vertices!(decorated, n_ell)
   labels = copy(truncated.labels)
   append!(labels, map(i -> string("...", i), 1:n_ell))
-  for (i, iv) in enumerate(needs_ellipsis_node)
+  for (i, iv) in enumerate(needs_ellipsis_edge)
     add_edge!(decorated, iv, n_orig + i)
   end
   LabelledDiGraph(decorated, labels)
