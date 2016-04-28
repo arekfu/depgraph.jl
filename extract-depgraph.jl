@@ -67,8 +67,7 @@ for file in parsed_args["OBJFILE"]
 
   for sym in file_syms
     if haskey(syms_to_files, sym)
-      print("sym $sym found in $key but already present in $(syms_to_files[sym])")
-      exit(1)
+      error("sym $sym found in $key but already present in $(syms_to_files[sym])")
     else
       syms_to_files[sym] = key
     end
