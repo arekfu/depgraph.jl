@@ -95,8 +95,21 @@ else
 end
 new_vertices, graph′ = egonet(graph, generator_indices, neigh_size, dir=neigh_dir)
 info("subgraph has $(nv(graph′)) vertices")
-verb = is_cyclic(graph′) ? "is" : "is not"
+
+# print some useful stats about the resulting subgraph
+cyclic = is_cyclic(graph′)
+verb = cyclic ? "is" : "is not"
 info("subgraph $verb cyclic")
+info("subgraph indegree:  min=$(δin(graph′)), max=$(Δin(graph′))")
+info("subgraph outdegree: min=$(δout(graph′)), max=$(Δout(graph′))")
+info("subgraph density: $(density(graph′))")
+if !cyclic
+  # the LightGraphs implementations of these functions only work for acyclic
+  # graphs
+  info("subgraph radius: $(radius(graph′))")
+  info("subgraph diameter: $(diameter(graph′))")
+  info("subgraph eccentricity: $(eccentricity(graph′))")
+end
 
 if do_ellipsis_edges
   info("adding ellipsis edges...")

@@ -1,6 +1,7 @@
 import LightGraphs: DiGraph, induced_subgraph, neighborhood, egonet,
                     strongly_connected_components, condensation, nv, ne,
-                    is_cyclic
+                    is_cyclic, δin, δout, Δin, Δout, density, radius, diameter,
+                    eccentricity, period, is_strongly_connected
 import Base: convert, copy
 
 include("types.jl")
@@ -232,3 +233,13 @@ function add_ellipsis_edges(complete::LabelledDiGraph,
 end
 
 is_cyclic(graph::LabelledDiGraph) = is_cyclic(graph.graph)
+δin(graph::LabelledDiGraph) = δin(graph.graph)
+δout(graph::LabelledDiGraph) = δout(graph.graph)
+Δin(graph::LabelledDiGraph) = Δin(graph.graph)
+Δout(graph::LabelledDiGraph) = Δout(graph.graph)
+density(graph::LabelledDiGraph) = density(graph.graph)
+radius(graph::LabelledDiGraph) = radius(graph.graph)
+diameter(graph::LabelledDiGraph) = diameter(graph.graph)
+eccentricity(graph::LabelledDiGraph) = eccentricity(graph.graph)
+period(graph::LabelledDiGraph) = period(graph.graph)
+is_strongly_connected(graph::LabelledDiGraph) = is_strongly_connected(graph.graph)
