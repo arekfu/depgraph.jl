@@ -197,8 +197,8 @@ function transitive_reduce(graph::LabelledDiGraph)
 end
 
 function add_ellipsis_edges(complete::LabelledDiGraph,
-                             truncated::LabelledDiGraph,
-                             vertices::Vector{Int})
+                            truncated::LabelledDiGraph,
+                            vertices::Vector{Int})
   vset = Set{Int}(vertices)
   needs_ellipsis_edge = []
   for (i, v) in enumerate(vertices)
