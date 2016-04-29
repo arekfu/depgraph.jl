@@ -26,6 +26,11 @@ arg_settings = ArgParseSettings()
     help = "size of the neighborhood to plot"
     arg_type = Int
     default = nothing
+  "-d", "--neighborhood-direction"
+    help = "direction in which neighborhoods are explored (\"in\", \"out\", \"both\")"
+    arg_type = AbstractString
+    default = "out"
+    range_tester = x -> x=="in" || x=="out" || x=="both"
   "--hide-ellipsis-edges"
     help = "hide ellipsis edges (they indicate where the graph was cut by the -n option)"
     action = :store_false
@@ -64,6 +69,8 @@ elseif isempty(focus_nodes)
   error("the -n option does not make sense without -f")
 end
 
+neigh_dir = Symbol(parsed_args["neighborhood-direction"])
+
 # script starts here
 
 using JLD       # for persistency
@@ -86,7 +93,7 @@ else
   focus_regex = nothing
   generator_indices = collect(1:nv(graph))
 end
-new_vertices, graph′ = egonet(graph, generator_indices, neigh_size)
+new_vertices, graph′ = egonet(graph, generator_indices, neigh_size, dir=neigh_dir)
 info("subgraph has $(nv(graph′)) vertices")
 verb = is_cyclic(graph′) ? "is" : "is not"
 info("subgraph $verb cyclic")

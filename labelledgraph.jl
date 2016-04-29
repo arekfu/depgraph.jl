@@ -134,7 +134,18 @@ function neighborhood(graph::DiGraph, vertices::Vector{Int}, dist::Int; kwargs..
 end
 
 function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int; kwargs...)
-  new_vertices::Vector{Int} = neighborhood(graph.graph, vertices, dist; kwargs...)
+  local new_vertices::Vector{Int}
+  new_kwargs = Dict(kwargs)
+  if haskey(new_kwargs, :dir) && new_kwargs[:dir]==:both
+    new_kwargs[:dir] = :in
+    new_vertices_in::Vector{Int} = neighborhood(graph.graph, vertices, dist; new_kwargs...)
+    new_kwargs[:dir] = :out
+    new_vertices_out::Vector{Int} = neighborhood(graph.graph, vertices, dist; new_kwargs...)
+    new_vertices_set = IntSet([new_vertices_in; new_vertices_out])
+    new_vertices = collect(new_vertices_set)
+  else
+    new_vertices = neighborhood(graph.graph, vertices, dist; kwargs...)
+  end
   graph′ = induced_subgraph(graph.graph, new_vertices)
   new_vertices, LabelledDiGraph(graph′, graph.labels[new_vertices])
 end
