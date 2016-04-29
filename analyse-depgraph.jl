@@ -26,9 +26,10 @@ arg_settings = ArgParseSettings()
     help = "size of the neighborhood to plot"
     arg_type = Int
     default = nothing
-  "-e", "--ellipsis-edges"
-    help = "add ellipsis edges to indicate where the graph was cut by the -n option"
-    action = :store_true
+  "--hide-ellipsis-edges"
+    help = "hide ellipsis edges (they indicate where the graph was cut by the -n option)"
+    action = :store_false
+    dest_name = "ellipsis-edges"
   "DICTFILE"
     help = "file containing the dependency dictionary"
     arg_type = AbstractString
