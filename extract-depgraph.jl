@@ -29,16 +29,16 @@ else
 end
 suppress = parsed_args["suppress"]
 
-typealias GraphDict Dict{ASCIIString, Set{ASCIIString}}
+include("types.jl")
 
-file_to_deps = Dict{ASCIIString, Set{ASCIIString}}()
-syms_to_files = Dict{ASCIIString, ASCIIString}()
+file_to_deps = Dict{File, Set{Sym}}()
+syms_to_files = Dict{Sym, File}()
 
 info("collecting symbols...")
 
 for file in parsed_args["OBJFILE"]
-  file_syms = Set{ASCIIString}()
-  file_deps = Set{ASCIIString}()
+  file_syms = Set{Sym}()
+  file_deps = Set{Sym}()
   bfile = last(rsplit(file, '/', limit=2))
   bfile_arr = rsplit(bfile, '.')
   key = bfile_arr[1]
@@ -49,6 +49,8 @@ for file in parsed_args["OBJFILE"]
   command = `nm -g -C $file`
   deps = readall(command)
 
+  # collect all the symbols provided by this file and all the symbol it
+  # references (dependencies)
   for line in split(deps, '\n')
     isempty(line) && continue
 
@@ -59,12 +61,15 @@ for file in parsed_args["OBJFILE"]
     contains("sym", "virtual thunk") && continue
 
     if typ=='T'
+      # this file provides this symbol
       push!(file_syms, sym)
     elseif typ=='U'
+      # undefined symbol: it represents a dependency
       push!(file_deps, sym)
     end
   end
 
+  # populate the symbol-to-file dictionary
   for sym in file_syms
     if haskey(syms_to_files, sym)
       error("sym $sym found in $key but already present in $(syms_to_files[sym])")
@@ -73,21 +78,33 @@ for file in parsed_args["OBJFILE"]
     end
   end
 
+  # fill the file-to-dependencies dictionary
   file_to_deps[key] = file_deps
 
 end
 
 info("constructing depgraph...")
-depgraph = Dict{ASCIIString, Set{ASCIIString}}()
+depgraph = GraphDict()
 
-for (file::ASCIIString, deps) in file_to_deps
-  for dep::ASCIIString in deps
-    if haskey(syms_to_files, dep)
-      if !haskey(depgraph, file)
-        depgraph[file] = Set{ASCIIString}()
-      end
-      push!(depgraph[file], syms_to_files[dep])
+for (file::File, deps::Set{Sym}) in file_to_deps
+  for dep::Sym in deps
+    # if we don't know about this symbol, do not include it in the graph
+    haskey(syms_to_files, dep) || continue
+    if !haskey(depgraph, file)
+      dependencies = DependenciesWithFile()
+      depgraph[file] = dependencies
+    else
+      dependencies = depgraph[file]
     end
+
+    dependee = syms_to_files[dep]
+    if in(dependencies, dependee)
+      syms = dependencies[dependee]
+    else
+      syms = Vector{Sym}()
+      dependencies[dependee] = syms
+    end
+    push!(syms, dep)
   end
 end
 

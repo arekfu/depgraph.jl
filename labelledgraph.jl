@@ -2,7 +2,7 @@ import LightGraphs: DiGraph, induced_subgraph, neighborhood, egonet,
                     strongly_connected_components, condensation, nv, ne
 import Base: convert, copy
 
-typealias GraphDict Dict{ASCIIString, Set{ASCIIString}}
+include("types.jl")
 
 type LabelledDiGraph
   graph :: DiGraph
@@ -12,17 +12,17 @@ end
 convert(::Type{DiGraph}, g::LabelledDiGraph) = g.graph
 
 function convert(::Type{LabelledDiGraph}, gd :: GraphDict)
-  kset = Set{ASCIIString}()
+  kset = Set{File}()
   for (k, vs) = gd
     push!(kset, k)
-    union!(kset, vs)
+    union!(kset, keys(vs))
   end
   labels = collect(kset)
   sort!(labels)
 
   nv = length(labels)
 
-  label_to_index = Dict{ASCIIString, Int}()
+  label_to_index = Dict{File, Int}()
   for ifrom = 1:nv
     label_to_index[labels[ifrom]] = ifrom
   end
@@ -30,7 +30,7 @@ function convert(::Type{LabelledDiGraph}, gd :: GraphDict)
   g = DiGraph(nv)
   for ifrom = 1:nv
     from = labels[ifrom]
-    tos = get(gd, from, [])
+    tos = haskey(gd, from) ? keys(gd[from]) : []
     itos = map(k -> label_to_index[k], tos)
     for ito = itos
       add_edge!(g, ifrom, ito)
