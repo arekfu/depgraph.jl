@@ -119,10 +119,15 @@ graph = graph′
 
 info("computing strongly connected components...")
 scc, cond_labels = strongly_connected_components(graph)
-nontrivial_scc = length(find(s -> length(s)>1, scc))
-largest_scc = maximum(map(length, scc))
+nontrivial_scc = count(s -> length(s)>1, scc)
+len_largest_scc, index_largest_scc = findmax(map(length, scc))
+#largest_scc = sort(scc[index_largest_scc])
+#largest_scc_subgraph = induced_subgraph(graph, largest_scc)
+#period_largest_scc = period(largest_scc_subgraph)
+#info("subgraph has $(length(scc)) scc ($nontrivial_scc non-trivial, ",
+#     "largest=$len_largest_scc with period $period_largest_scc)")
 info("subgraph has $(length(scc)) scc ($nontrivial_scc non-trivial, ",
-     "largest=$largest_scc)")
+     "largest=$len_largest_scc)")
 
 if do_condensation
   info("condensing...")
