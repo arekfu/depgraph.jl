@@ -1,0 +1,46 @@
+#!/usr/bin/env julia
+
+using ArgParse
+
+arg_settings =
+  ArgParseSettings(description="""
+    Show why an object file A depends on B. It prints the list of symbols
+    provided by B and used by A.
+  """)
+
+@add_arg_table arg_settings begin
+  "-d", "--dependency-dictionary"
+    help = "file containing the dependency dictionary"
+    arg_type = AbstractString
+    required = true
+  "A"
+    help = "name of the dependent file"
+    arg_type = AbstractString
+    required = true
+  "B"
+    help = "name of the dependee"
+    arg_type = AbstractString
+    required = true
+end
+
+parsed_args = parse_args(arg_settings)
+
+dict_filename = parsed_args["dependency-dictionary"]
+dependent = parsed_args["A"]
+dependee = parsed_args["B"]
+
+# script starts here
+
+using JLD       # for persistency
+
+info("loading dictionary...")
+@load(dict_filename, depgraph)
+
+# look for the dependent file
+haskey(depgraph, dependent) || error("file $dependent not found in the dependency dictionary")
+
+deps = depgraph[dependent]
+syms = get(deps, dependee, [])
+for sym in syms
+  println(sym)
+end
