@@ -135,5 +135,5 @@ if do_transitive_reduction
   info("reduced subgraph has $(nv(graph)) vertices")
 end
 
-info("saving...")
+info("saving to $output_filename...")
 to_dotfile(graph, output_filename; highlight=focus_regex, label_len=label_len)
