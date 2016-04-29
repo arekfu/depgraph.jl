@@ -1,5 +1,6 @@
 import LightGraphs: DiGraph, induced_subgraph, neighborhood, egonet,
-                    strongly_connected_components, condensation, nv, ne
+                    strongly_connected_components, condensation, nv, ne,
+                    is_cyclic
 import Base: convert, copy
 
 include("types.jl")
@@ -218,3 +219,5 @@ function add_ellipsis_edges(complete::LabelledDiGraph,
   end
   LabelledDiGraph(decorated, labels)
 end
+
+is_cyclic(graph::LabelledDiGraph) = is_cyclic(graph.graph)

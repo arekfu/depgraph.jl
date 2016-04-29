@@ -88,6 +88,8 @@ else
 end
 new_vertices, graph′ = egonet(graph, generator_indices, neigh_size)
 info("subgraph has $(nv(graph′)) vertices")
+verb = is_cyclic(graph′) ? "is" : "is not"
+info("subgraph $verb cyclic")
 
 if do_ellipsis_edges
   info("adding ellipsis edges...")
