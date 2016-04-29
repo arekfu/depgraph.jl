@@ -87,7 +87,7 @@ else
   generator_indices = collect(1:nv(graph))
 end
 new_vertices, graph′ = egonet(graph, generator_indices, neigh_size)
-info("subgraph has $(nv(graph)) vertices")
+info("subgraph has $(nv(graph′)) vertices")
 
 if do_ellipsis_edges
   info("adding ellipsis edges...")
