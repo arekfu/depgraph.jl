@@ -30,11 +30,11 @@ dependency graph between the object files and serialize it to a `.jld` file.
 
 You can then analyse the resulting dependency graph using the
 `analyse-depgraph.jl` tool. This will read in the graph and convert it to
-`.dot` format, suitable for plotting with [GraphViz][GraphViz]. Furthermore, you can
-optionally [condense][SCC] the graph (`-c` switch) and apply [transitive
-reduction][TR] (`-t` switch). Finally, you can use the `-f` switch to limit the
-graph to the neighbourhood of one or more nodes; the `-n` switch controls the
-size of the neighbourhood.
+`.dot` format, suitable for plotting with [GraphViz][GraphViz]. Furthermore,
+you can optionally [condense][SCC] the graph (`-c` switch) and apply
+[transitive reduction][TR] (`-t` switch). Finally, you can use the `-f` switch
+to limit the graph to the neighbourhood of one or more nodes; the `-n` switch
+controls the size of the neighbourhood.
 
 [JLD]: https://github.com/JuliaLang/JLD.jl
 [ArgParse]: https://github.com/carlobaldassi/ArgParse.jl
