@@ -13,7 +13,7 @@ arg_settings = ArgParseSettings()
     arg_type = Int
     default = 20
   "-t", "--transitive-reduction"
-    help = "apply transitive reduction"
+    help = "apply a simplified form of transitive reduction"
     action = :store_true
   "-c", "--condensation"
     help = "apply condensation"
