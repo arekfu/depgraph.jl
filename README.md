@@ -47,13 +47,14 @@ controls the size of the neighbourhood.
 Examples
 --------
 
-Construct a dependency graph:
+Construct a dependency graph from some object files:
 ```bash
 $ ./extract-depgraph.jl -o depgraph.jld foo.o bar.o baz.o quux.o
 ```
 
-Inspect the neighborhood of node `bar`; i.e. nodes that can be reached from
-`bar`; object files on which `bar.o` depends:
+Inspect the neighbourhood of node `bar`. This is the set of nodes that can be
+directly or indirectly reached from `bar`, i.e. the set of object files on
+which `bar.o` depends:
 ```bash
 $ ./analyse-depgraph.jl -f bar -o bar.dot depgraph.jld
 ```
@@ -63,9 +64,21 @@ Likewise, for the joint neighbourhood of nodes `bar` and `baz`:
 $ ./analyse-depgraph.jl -f bar -f baz -o bar-baz.dot depgraph.jld
 ```
 
-Limit the neighborhood to distance 2:
+Limit the neighbourhood to distance 2:
 ```bash
 $ ./analyse-depgraph.jl -f bar -n 2 -o bar.dot depgraph.jld
+```
+
+Inspect the *ascending* neighbourhood of node `bar`, i.e. the set of object
+files which (directly or indirectly) depend on `bar.o`:
+```bash
+$ ./analyse-depgraph.jl -f bar -n 2 -d in -o bar.dot depgraph.jld
+```
+
+Likewise, but do not add dangling arrows for dependencies that have been cut by
+the `-n` option:
+```bash
+$ ./analyse-depgraph.jl -f bar -n 2 -d in --hide-ellipsis-edges -o bar.dot depgraph.jld
 ```
 
 Convert the resulting `.dot` file to PDF:
