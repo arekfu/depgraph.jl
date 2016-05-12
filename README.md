@@ -1,5 +1,5 @@
-`depgraph.jl`
-=============
+depgraph
+========
 
 A set of simple tools to generate and analyse dependency graphs between object
 files. It is written in Julia.
