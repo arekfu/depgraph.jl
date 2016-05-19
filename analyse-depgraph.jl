@@ -8,16 +8,16 @@ arg_settings = ArgParseSettings()
   "-o", "--output"
     help = "name of the dot output file"
     arg_type = AbstractString
-  "-l", "--label-length"
-    help = "maximum label length"
-    arg_type = Int
-    default = 20
   "-t", "--transitive-reduction"
     help = "apply a simplified form of transitive reduction"
     action = :store_true
   "-c", "--condensation"
     help = "apply condensation"
     action = :store_true
+  "-l", "--library"
+    help = "make a comma-separated list of objects appear as a library"
+    metavar = "LIBRARY_NAME:OBJ1,OBJ2,..."
+    action = :append_arg
   "-f", "--focus"
     help = "focus on the given nodes"
     arg_type = AbstractString
@@ -31,6 +31,10 @@ arg_settings = ArgParseSettings()
     arg_type = AbstractString
     default = "out"
     range_tester = x -> x=="in" || x=="out" || x=="both"
+  "--label-length"
+    help = "maximum label length"
+    arg_type = Int
+    default = 20
   "--hide-ellipsis-edges"
     help = "hide ellipsis edges (they indicate where the graph was cut by the -n option)"
     action = :store_false
@@ -70,6 +74,15 @@ elseif isempty(focus_nodes)
 end
 
 neigh_dir = Symbol(parsed_args["neighborhood-direction"])
+
+libraries_arg = parsed_args["library"]
+libraries = Dict{AbstractString,Vector{AbstractString}}()
+for library_arg in libraries_arg
+  library_split = split(library_arg, ':')
+  library_name = library_split[1]
+  obj_split = split(library_split[2], ',')
+  libraries[library_name] = obj_split
+end
 
 # script starts here
 
@@ -141,4 +154,6 @@ if do_transitive_reduction
 end
 
 info("saving to $output_filename...")
-to_dotfile(graph, output_filename; highlight=focus_regex, label_len=label_len)
+to_dotfile(graph, output_filename; highlight=focus_regex,
+                                   label_len=label_len,
+                                   libraries=libraries)

@@ -53,19 +53,25 @@ function induced_subgraph(g :: LabelledDiGraph, iter)
 end
 
 function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
-                          root=nothing, label_len=nothing, highlight=nothing)
+                          root=nothing, label_len=nothing, highlight=nothing,
+                          libraries=nothing)
   g = graph.graph
   labels = graph.labels
+
+  # determine label length
   if label_len==nothing
     label_len = typemax(Int)
   end
-  tr_labels = [truncate_string(l, label_len) for l in labels]
-  lines = ["digraph \"$name\" {"]
+
+  # determine root
   if root==nothing
     from = find_root(g)
   else
     from = root
   end
+
+  tr_labels = [truncate_string(l, label_len) for l in labels]
+  lines = ["digraph \"$name\" {"]
   from_label = tr_labels[from]
   push!(lines, "root=\"$from_label\";")
   push!(lines, "rankdir=LR;")
@@ -100,6 +106,19 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
       end
     end
   end
+
+  # add library clusters
+  if libraries!=nothing
+    for (lib, objs) in libraries
+      push!(lines, "subgraph \"cluster-$lib\" {")
+      push!(lines, "label=\"$lib\";")
+      for obj in objs
+        push!(lines, "\"$obj\"")
+      end
+      push!(lines, "}")
+    end
+  end
+
   push!(lines, "}\n")
   join(lines, '\n')
 end
