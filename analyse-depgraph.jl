@@ -149,10 +149,11 @@ if do_condensation
   graph = condensation(graph)
 end
 
+info("graph has $(ne(graph)) edges")
 if do_transitive_reduction
   info("reducing...")
-  graph = transitive_reduce(graph)
-  info("reduced subgraph has $(nv(graph)) vertices")
+  graph = transitive_reduction(graph)
+  info("reduced graph has $(ne(graph)) edges")
 end
 
 info("saving to $output_filename...")

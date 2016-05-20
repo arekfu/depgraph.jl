@@ -1,7 +1,8 @@
 import LightGraphs: DiGraph, induced_subgraph, neighborhood, egonet,
                     strongly_connected_components, condensation, nv, ne,
                     is_cyclic, δin, δout, Δin, Δout, density, radius, diameter,
-                    eccentricity, period, is_strongly_connected
+                    eccentricity, period, is_strongly_connected,
+                    examine_neighbor!
 import Base: convert, copy
 
 include("types.jl")
@@ -212,28 +213,44 @@ function condensation(graph::LabelledDiGraph)
   LabelledDiGraph(cond_graph, scc_labels)
 end
 
-function transitive_reduce(graph::LabelledDiGraph)
-  g = graph.graph
-  g′ = copy(g)
-  remove = Set{Edge}()
-  for i = g.vertices
-    i_neighs = out_neighbors(g, i)
-    for j = i_neighs
-      i==j && continue
-      for k = out_neighbors(g, j)
-        j==k && continue
-        if in(k, i_neighs)
-          push!(remove, Edge(i, k))
-        end
-      end
+# machinery for transitive reduction
+
+type TransitiveReductionVisitor <: SimpleGraphVisitor
+  graph :: DiGraph
+  root :: Int
+  remove :: Set{Edge}
+
+  TransitiveReductionVisitor(g::DiGraph, v::Int) = new(g, v, Set{Edge}())
+end
+
+function examine_neighbor!(visitor::TransitiveReductionVisitor, u::Int, v::Int, ucolor::Int, vcolor::Int, ecolor::Int)
+  if has_edge(visitor.graph, visitor.root, v)
+    push!(visitor.remove, Edge(visitor.root, v))
+  end
+  true
+end
+
+function transitive_reduction(graph::DiGraph)
+  graph′ = copy(graph)
+  for i = graph.vertices
+    visitor = TransitiveReductionVisitor(graph′, i)
+    i_neighs = out_neighbors(graph′, i)
+    for j in i_neighs
+      traverse_graph!(graph′, DepthFirst(), j, visitor)
+    end
+    for edge in visitor.remove
+      rem_edge!(graph′, edge)
     end
   end
-
-  for edge in remove
-    rem_edge!(g′, edge)
-  end
-  LabelledDiGraph(g′, graph.labels)
+  graph′
 end
+
+function transitive_reduction(graph::LabelledDiGraph)
+  g = transitive_reduction(graph.graph)
+  LabelledDiGraph(g, graph.labels)
+end
+
+
 
 function add_ellipsis_edges(complete::LabelledDiGraph,
                             truncated::LabelledDiGraph,
