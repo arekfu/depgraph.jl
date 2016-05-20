@@ -54,7 +54,7 @@ end
 
 function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
                           root=nothing, label_len=nothing, highlight=nothing,
-                          libraries=nothing)
+                          libraries=nothing, cli="")
   g = graph.graph
   labels = graph.labels
 
@@ -71,7 +71,9 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   end
 
   tr_labels = [truncate_string(l, label_len) for l in labels]
-  lines = ["digraph \"$name\" {"]
+  lines = ["// command line used to produce this graph:"]
+  push!(lines, "// $cli")
+  push!(lines, "digraph \"$name\" {")
   from_label = tr_labels[from]
   push!(lines, "root=\"$from_label\";")
   push!(lines, "rankdir=LR;")

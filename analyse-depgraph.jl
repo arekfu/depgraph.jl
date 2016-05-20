@@ -2,6 +2,8 @@
 
 using ArgParse
 
+cli = join(ARGS, ' ')
+
 arg_settings = ArgParseSettings()
 
 @add_arg_table arg_settings begin
@@ -156,4 +158,5 @@ end
 info("saving to $output_filename...")
 to_dotfile(graph, output_filename; highlight=focus_regex,
                                    label_len=label_len,
-                                   libraries=libraries)
+                                   libraries=libraries,
+                                   cli=cli)
