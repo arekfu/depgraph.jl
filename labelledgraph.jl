@@ -115,7 +115,13 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
       push!(lines, "subgraph \"cluster-$lib\" {")
       push!(lines, "label=\"$lib\";")
       for obj in objs
-        push!(lines, "\"$obj\"")
+        if startswith(from_label, "...")
+          push!(lines, "\"$obj\" [style=invis]")
+        elseif highlight!=nothing && ismatch(highlight, obj)
+          push!(lines, "\"$obj\" [fillcolor=firebrick]")
+        else
+          push!(lines, "\"$obj\"")
+        end
       end
       push!(lines, "}")
     end
