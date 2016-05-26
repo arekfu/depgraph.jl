@@ -240,7 +240,9 @@ type TransitiveReductionVisitor <: SimpleGraphVisitor
 end
 
 function examine_neighbor!(visitor::TransitiveReductionVisitor, u::Int, v::Int, ucolor::Int, vcolor::Int, ecolor::Int)
-  if has_edge(visitor.graph, visitor.root, v)
+  if v==visitor.root
+    warn("graph is cyclic: transitive reduction not unique")
+  elseif has_edge(visitor.graph, visitor.root, v)
     push!(visitor.remove, Edge(visitor.root, v))
   end
   true
