@@ -31,14 +31,14 @@ suppress = parsed_args["suppress"]
 
 include("types.jl")
 
-file_to_deps = Dict{File, Set{Sym}}()
-syms_to_files = Dict{Sym, File}()
+file_to_deps = Dict{File, Set{SymName}}()
+syms_to_files = Dict{SymName, Files}()
 
 info("collecting symbols...")
 
 for file in parsed_args["OBJFILE"]
   file_syms = Set{Sym}()
-  file_deps = Set{Sym}()
+  file_deps = Set{SymName}()
   bfile = last(rsplit(file, '/', limit=2))
   bfile_arr = rsplit(bfile, '.')
   key = bfile_arr[1]
@@ -54,27 +54,39 @@ for file in parsed_args["OBJFILE"]
   for line in split(deps, '\n')
     isempty(line) && continue
 
-    add = line[1:16]
-    typ = line[18]
-    sym = line[20:end]
+    ismatch(r"^[0-9a-f]{16}| {16}", line) || continue
 
-    contains("sym", "virtual thunk") && continue
+    #add = line[1:16]
+    symtype = line[18]
+    symname = line[20:end]
 
-    if typ=='T'
+    contains(symname, "virtual thunk to ") && continue
+    contains(symname, "typeinfo for ") && continue
+
+    if symtype=='T' || symtype=='W'
       # this file provides this symbol
-      push!(file_syms, sym)
-    elseif typ=='U'
+      push!(file_syms, Sym(symname, symtype))
+    elseif symtype=='U'
       # undefined symbol: it represents a dependency
-      push!(file_deps, sym)
+      push!(file_deps, symname)
     end
   end
 
   # populate the symbol-to-file dictionary
   for sym in file_syms
-    if haskey(syms_to_files, sym)
-      error("sym $sym found in $key but already present in $(syms_to_files[sym])")
+    name = sym.symname
+    if haskey(syms_to_files, name)
+      if sym.symtype=='T' && !isempty(syms_to_files[name].strong)
+        other = join(',', syms_to_files[name].strong)
+        warn("strong sym $sym found in $key but already present in $other")
+      end
     else
-      syms_to_files[sym] = key
+      syms_to_files[name] = Files()
+    end
+    if sym.symtype=='T'
+      push!(syms_to_files[name].strong, key)
+    else
+      push!(syms_to_files[name].weak, key)
     end
   end
 
@@ -86,8 +98,8 @@ end
 info("constructing depgraph...")
 depgraph = GraphDict()
 
-for (file::File, deps::Set{Sym}) in file_to_deps
-  for dep::Sym in deps
+for (file::File, deps::Set{SymName}) in file_to_deps
+  for dep::SymName in deps
     # if we don't know about this symbol, do not include it in the graph
     haskey(syms_to_files, dep) || continue
     if !haskey(depgraph, file)
@@ -97,14 +109,17 @@ for (file::File, deps::Set{Sym}) in file_to_deps
       dependencies = depgraph[file]
     end
 
-    dependee = syms_to_files[dep]
-    if in(dependencies, dependee)
-      syms = dependencies[dependee]
-    else
-      syms = Vector{Sym}()
-      dependencies[dependee] = syms
+    dependees_ws = syms_to_files[dep]
+    dependees = isempty(dependees_ws.strong) ? dependees_ws.weak : dependees_ws.strong
+    for dependee in dependees
+      if haskey(dependencies, dependee)
+        syms = dependencies[dependee]
+      else
+        syms = SymNames()
+        dependencies[dependee] = syms
+      end
+      push!(syms, dep)
     end
-    push!(syms, dep)
   end
 end
 
