@@ -90,7 +90,7 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
       push!(lines, "\"$from_label\" [fillcolor=firebrick]")
     else
       n = count(c->c==':', full_label) + 1
-      if n>1
+      if n>1 || startswith(full_label, '+')
         from_label = tr_labels[from]
         push!(lines, "\"$from_label\" [fillcolor=dodgerblue]")
       end
@@ -211,6 +211,22 @@ function condensation(graph::LabelledDiGraph)
   cond_graph = condensation(graph.graph)
   scc, scc_labels = strongly_connected_components(graph)
   LabelledDiGraph(cond_graph, scc_labels)
+end
+
+function condense_these(graph::LabelledDiGraph, clabels::Vector{AbstractString}, new_label::AbstractString)
+  indices = findin(graph.labels, clabels)
+  graph′, components = condense_these(graph.graph, indices)
+  labels′ = condense_labels(graph, components)
+  labels′[end] = new_label
+  LabelledDiGraph(graph′, labels′)
+end
+
+function condense_these(graph::DiGraph, to_be_condensed::Vector{Int})
+  vs = collect(vertices(graph))
+  rest = setdiff(vs, to_be_condensed)
+  components = [ [v] for v in rest ]
+  push!(components, to_be_condensed)
+  condensation(graph, components), components
 end
 
 # machinery for transitive reduction

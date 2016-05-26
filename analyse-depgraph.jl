@@ -17,7 +17,7 @@ arg_settings = ArgParseSettings()
     help = "apply condensation"
     action = :store_true
   "-l", "--library"
-    help = "make a comma-separated list of objects appear as a library"
+    help = "make a comma-separated list of objects appear as a library. If the library name starts with a '+', the nodes in the library are condensed into a single node."
     metavar = "LIBRARY_NAME:OBJ1,OBJ2,..."
     action = :append_arg
   "-f", "--focus"
@@ -145,10 +145,24 @@ len_largest_scc, index_largest_scc = findmax(map(length, scc))
 info("subgraph has $(length(scc)) scc ($nontrivial_scc non-trivial, ",
      "largest=$len_largest_scc)")
 
+# apply condensation to any specified library
+del_libs = Vector{AbstractString}()
+for (libname, objs) in libraries
+  startswith(libname, '+') || continue
+
+  info("condensing library $libname...")
+  graph = condense_these(graph, objs, libname)
+  push!(del_libs, libname)
+end
+for lib in del_libs
+  delete!(libraries, lib)
+end
+
 if do_condensation
-  info("condensing...")
+  info("condensing strongly connected components...")
   graph = condensation(graph)
 end
+
 
 info("graph has $(ne(graph)) edges")
 if do_transitive_reduction
