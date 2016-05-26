@@ -63,7 +63,7 @@ for file in parsed_args["OBJFILE"]
     contains(symname, "virtual thunk to ") && continue
     contains(symname, "typeinfo for ") && continue
 
-    if symtype=='T' || symtype=='W'
+    if symtype=='T' || symtype=='W' || symtype=='B'
       # this file provides this symbol
       push!(file_syms, Sym(symname, symtype))
     elseif symtype=='U'
@@ -76,14 +76,14 @@ for file in parsed_args["OBJFILE"]
   for sym in file_syms
     name = sym.symname
     if haskey(syms_to_files, name)
-      if sym.symtype=='T' && !isempty(syms_to_files[name].strong)
+      if is_strong(sym) && !isempty(syms_to_files[name].strong)
         other = join(',', syms_to_files[name].strong)
         warn("strong sym $sym found in $key but already present in $other")
       end
     else
       syms_to_files[name] = Files()
     end
-    if sym.symtype=='T'
+    if is_strong(sym)
       push!(syms_to_files[name].strong, key)
     else
       push!(syms_to_files[name].weak, key)
