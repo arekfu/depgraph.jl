@@ -110,6 +110,7 @@ else
 end
 new_vertices, graph′ = egonet(graph, generator_indices, neigh_size, dir=neigh_dir)
 info("subgraph has $(nv(graph′)) vertices")
+info("subgraph has $(ne(graph′)) edges")
 
 # print some useful stats about the resulting subgraph
 cyclic = is_cyclic(graph′)
