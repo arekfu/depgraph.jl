@@ -6,9 +6,9 @@ files. It is written in Julia.
 
 Julia package dependencies:
 
-* [JLD](JLD)
-* [ArgParse](ArgParse)
-* [LightGraphs](LightGraphs) (>0.5.2)
+* [JLD][JLD]
+* [ArgParse][ArgParse]
+* [LightGraphs][LightGraphs] (>0.5.2)
 
 From your Julia prompt, running the following commands will install all the
 dependencies:
