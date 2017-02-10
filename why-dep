@@ -1,4 +1,5 @@
 #!/usr/bin/env julia
+# vi: ft=julia
 
 using ArgParse
 
