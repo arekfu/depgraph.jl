@@ -1,4 +1,5 @@
 #!/usr/bin/env julia
+# vi: ft=julia
 
 using ArgParse
 using JLD       # for persistency
@@ -32,7 +33,7 @@ suppress = parsed_args["suppress"]
 include("types.jl")
 
 file_to_deps = Dict{File, Set{SymName}}()
-syms_to_files = Dict{SymName, Files}()
+syms_to_files = Dict{SymName, OFiles}()
 
 info("collecting symbols...")
 
@@ -81,7 +82,7 @@ for file in parsed_args["OBJFILE"]
         warn("strong sym $sym found in $key but already present in $other")
       end
     else
-      syms_to_files[name] = Files()
+      syms_to_files[name] = OFiles()
     end
     if is_strong(sym)
       push!(syms_to_files[name].strong, key)
