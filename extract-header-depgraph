@@ -1,0 +1,92 @@
+#!/usr/bin/env julia
+# vi: ft=julia
+
+using ArgParse
+using JLD       # for persistency
+
+arg_settings = ArgParseSettings()
+
+@add_arg_table arg_settings begin
+  "-o", "--output"
+    help = "name of the output file"
+    arg_type = AbstractString
+  "-x", "--exclude"
+    help = "files matching this regex pattern will be excluded"
+    arg_type = AbstractString
+    action = :append_arg
+  "SOURCEFILE"
+    help = "source file to analyse"
+    arg_type = AbstractString
+    nargs = '+'
+    required = true
+end
+
+parsed_args = parse_args(arg_settings)
+
+if parsed_args["output"] == nothing
+  output_filename = "depgraph.jld"
+else
+  output_filename = parsed_args["output"]
+end
+
+exclude_patterns = map(Regex, parsed_args["exclude"])
+
+include("types.jl")
+
+file_to_hfiles = Dict{File, HFiles}()
+
+function get_includes(f::IOStream)
+  include_regex=r"^\s*#include\s*[<\"]([^>\"]+)[>\"]"
+  res = HFiles()
+  for line in eachline(f)
+    m = match(include_regex, line)
+    if m != nothing
+      hname = String(first(m.captures))
+      excluded = false
+      for pat in exclude_patterns
+        if ismatch(pat, hname)
+          excluded = true
+          break
+        end
+      end
+      if !excluded
+        push!(res.files, hname)
+      end
+    end
+  end
+  res
+end
+
+info("analyzing dependencies and constructing depgraph...")
+
+for file in parsed_args["SOURCEFILE"]
+  excluded = false
+  for pat in exclude_patterns
+    if ismatch(pat, file)
+      excluded = true
+      break
+    end
+  end
+  if excluded
+    continue
+  end
+  hfiles = open(get_includes, file)
+  
+  key = last(rsplit(file, '/', limit=2))
+
+  # fill the file-to-dependencies dictionary
+  file_to_hfiles[key] = hfiles
+end
+
+# convert to depgraph
+depgraph = GraphDict()
+for (key::File, hfiles::HFiles) in file_to_hfiles
+  dependencies = DependenciesWithFile()
+  for dependee in hfiles.files
+    dependencies[dependee] = [dependee]
+  end
+  depgraph[key] = dependencies
+end
+
+info("saving to $output_filename...")
+@save(output_filename, depgraph)

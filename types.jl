@@ -2,10 +2,14 @@ import Base: convert, (==)
 
 # some useful type aliases
 typealias File AbstractString
-type Files
+type OFiles
   weak   :: Vector{File}
   strong :: Vector{File}
-  Files() = new(Vector{File}(), Vector{File}())
+  OFiles() = new(Vector{File}(), Vector{File}())
+end
+type HFiles
+  files :: Vector{File}
+  HFiles() = new(Vector{File}())
 end
 type SymType
   symtype :: Char

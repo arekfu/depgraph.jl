@@ -2,7 +2,7 @@ import LightGraphs: DiGraph, induced_subgraph, neighborhood, egonet,
                     strongly_connected_components, condensation, nv, ne,
                     is_cyclic, δin, δout, Δin, Δout, density, radius, diameter,
                     eccentricity, period, is_strongly_connected,
-                    examine_neighbor!
+                    examine_neighbor!, is_connected
 import Base: convert, copy
 
 include("types.jl")
@@ -49,8 +49,8 @@ nv(g :: LabelledDiGraph) = nv(g.graph)
 ne(g :: LabelledDiGraph) = ne(g.graph)
 
 function induced_subgraph(g :: LabelledDiGraph, iter)
-  graph′ = induced_subgraph(g.graph, iter)
-  g′ = LabelledDiGraph(graph′, g.labels[iter])
+  graph′, vertices = induced_subgraph(g.graph, iter)
+  LabelledDiGraph(graph′, g.labels[vertices])
 end
 
 function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
@@ -72,11 +72,12 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   end
 
   tr_labels = [truncate_string(l, label_len) for l in labels]
-  lines = ["// command line used to produce this graph:"]
-  push!(lines, "// $cli")
+  lines = ["// command line arguments used to produce this graph:"]
+  map!(s -> "// $s", cli)
+  append!(lines, cli)
+  push!(lines, "")
   push!(lines, "digraph \"$name\" {")
-  from_label = tr_labels[from]
-  push!(lines, "root=\"$from_label\";")
+  push!(lines, "root=\"$(labels[from])\";")
   push!(lines, "rankdir=LR;")
   push!(lines, "node [shape=box, style=filled];")
   push!(lines, "edge [arrowhead=onormal];")
@@ -84,24 +85,24 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
   for from in g.vertices
     full_label = labels[from]
     from_label = tr_labels[from]
-    if startswith(from_label, "...")
-      push!(lines, "\"$from_label\" [style=invis]")
+    push!(lines, "\"$full_label\" [label=\"$from_label\"]")
+    if startswith(full_label, "...")
+      push!(lines, "\"$full_label\" [style=invis]")
     elseif highlight!=nothing && ismatch(highlight, full_label)
-      push!(lines, "\"$from_label\" [fillcolor=firebrick]")
+      push!(lines, "\"$full_label\" [fillcolor=firebrick]")
     else
       n = count(c->c==':', full_label) + 1
       if n>1 || startswith(full_label, '+')
-        from_label = tr_labels[from]
-        push!(lines, "\"$from_label\" [fillcolor=dodgerblue]")
+        push!(lines, "\"$full_label\" [fillcolor=dodgerblue]")
       end
     end
   end
 
   for from = g.vertices
-    from_label = tr_labels[from]
+    from_label = labels[from]
     tos = in_neighbors(g, from)
     for to = tos
-      to_label = tr_labels[to]
+      to_label = labels[to]
       if startswith(from_label, "...")
         push!(lines, "\"$to_label\" -> \"$from_label\" [style=dotted]")
       else
@@ -116,13 +117,7 @@ function to_dot_as_string(graph::LabelledDiGraph, name::AbstractString;
       push!(lines, "subgraph \"cluster-$lib\" {")
       push!(lines, "label=\"$lib\";")
       for obj in objs
-        if startswith(from_label, "...")
-          push!(lines, "\"$obj\" [style=invis]")
-        elseif highlight!=nothing && ismatch(highlight, obj)
-          push!(lines, "\"$obj\" [fillcolor=firebrick]")
-        else
-          push!(lines, "\"$obj\"")
-        end
+        push!(lines, "\"$obj\"")
       end
       push!(lines, "}")
     end
@@ -162,7 +157,7 @@ function neighborhood(graph::DiGraph, vertices::Vector{Int}, dist::Int; kwargs..
   keep
 end
 
-function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int; kwargs...)
+function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int=typemax(Int); kwargs...)
   local new_vertices::Vector{Int}
   new_kwargs = Dict(kwargs)
   if haskey(new_kwargs, :dir) && new_kwargs[:dir]==:both
@@ -175,8 +170,8 @@ function egonet(graph::LabelledDiGraph, vertices::Vector{Int}, dist::Int; kwargs
   else
     new_vertices = neighborhood(graph.graph, vertices, dist; kwargs...)
   end
-  graph′ = induced_subgraph(graph.graph, new_vertices)
-  new_vertices, LabelledDiGraph(graph′, graph.labels[new_vertices])
+  graph′ = induced_subgraph(graph, new_vertices)
+  new_vertices, graph′
 end
 
 function truncate_string(s::AbstractString, len::Int)
@@ -213,20 +208,48 @@ function condensation(graph::LabelledDiGraph)
   LabelledDiGraph(cond_graph, scc_labels)
 end
 
-function condense_these(graph::LabelledDiGraph, clabels::Vector{AbstractString}, new_label::AbstractString)
-  indices = findin(graph.labels, clabels)
-  graph′, components = condense_these(graph.graph, indices)
-  labels′ = condense_labels(graph, components)
-  labels′[end] = new_label
-  LabelledDiGraph(graph′, labels′)
+function find_duplicated_vertices(components::Vector{Vector{Int}})
+  duplicated = IntSet()
+  n = length(components)
+  for i in 1:n
+    for j in i+1:n
+      union!(duplicated, intersect(components[i], components[j]))
+    end
+  end
+  collect(duplicated)
 end
 
-function condense_these(graph::DiGraph, to_be_condensed::Vector{Int})
-  vs = collect(vertices(graph))
-  rest = setdiff(vs, to_be_condensed)
-  components = [ [v] for v in rest ]
-  push!(components, to_be_condensed)
-  condensation(graph, components), components
+function get_components_to_condense(graph::LabelledDiGraph, new_labels::Vector{AbstractString}, libraries::Dict{AbstractString,Vector{AbstractString}})
+  components = [ findin(graph.labels, libraries[l]) for l in new_labels ]
+  n = length(components)
+  duplicated = find_duplicated_vertices(components)
+  if !isempty(duplicated)
+    duplicated_labels = ""
+    for dup in duplicated
+      appears_in = find(c -> dup in c, components)
+      containing_components = join(new_labels[appears_in], ", ")
+      duplicated_labels = "$duplicated_labels  $(graph.labels[dup]): $containing_components\n"
+    end
+    error("the following items appear in more than one component:\n$duplicated_labels\n")
+  end
+  components
+end
+
+function condense_these(graph::LabelledDiGraph, new_labels::Vector{AbstractString}, libraries::Dict{AbstractString,Vector{AbstractString}})
+  components = get_components_to_condense(graph, new_labels, libraries)
+
+  indices = IntSet(1:nv(graph))
+  for c in components
+    setdiff!(indices, c)
+  end
+  labels′ = new_labels
+  for i in indices
+    push!(components, [i])
+    push!(labels′, graph.labels[i])
+  end
+  @assert(sum(map(length, components))==nv(graph), "$(sum(map(length, components)))!=$(nv(graph))")
+  graph′ = condensation(graph.graph, components)
+  LabelledDiGraph(graph′, labels′)
 end
 
 # machinery for transitive reduction
@@ -295,6 +318,7 @@ function add_ellipsis_edges(complete::LabelledDiGraph,
 end
 
 is_cyclic(graph::LabelledDiGraph) = is_cyclic(graph.graph)
+is_connected(graph::LabelledDiGraph) = is_connected(graph.graph)
 δin(graph::LabelledDiGraph) = δin(graph.graph)
 δout(graph::LabelledDiGraph) = δout(graph.graph)
 Δin(graph::LabelledDiGraph) = Δin(graph.graph)

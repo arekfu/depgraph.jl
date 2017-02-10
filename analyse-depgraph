@@ -3,8 +3,6 @@
 
 using ArgParse
 
-cli = join(ARGS, ' ')
-
 arg_settings = ArgParseSettings()
 
 @add_arg_table arg_settings begin
@@ -21,10 +19,18 @@ arg_settings = ArgParseSettings()
     help = "make a comma-separated list of objects appear as a library. If the library name starts with a '+', the nodes in the library are condensed into a single node."
     metavar = "LIBRARY_NAME:OBJ1,OBJ2,..."
     action = :append_arg
+  "-x", "--exclude"
+    help = "exclude an object from the graph"
+    metavar = "EXCLUDE_REGEX"
+    action = :append_arg
   "-f", "--focus"
     help = "focus on the given nodes"
     arg_type = AbstractString
     action = :append_arg
+  "--debug"
+    help = "print debugging information about why two libraries are connected"
+    metavar = "LIB1:LIB2"
+    arg_type = AbstractString
   "-n", "--neighborhood-size"
     help = "size of the neighborhood to plot"
     arg_type = Int
@@ -67,7 +73,14 @@ do_transitive_reduction = parsed_args["transitive-reduction"]
 do_condensation = parsed_args["condensation"]
 do_ellipsis_edges = parsed_args["ellipsis-edges"]
 
+if parsed_args["debug"] != nothing
+  debug_from, debug_to = split(parsed_args["debug"], ':')
+else
+  debug_from = debug_to = nothing
+end
+
 focus_nodes = parsed_args["focus"]
+exclude_nodes = parsed_args["exclude"]
 
 neigh_size = parsed_args["neighborhood-size"]
 if neigh_size==nothing
@@ -116,7 +129,10 @@ info("subgraph has $(ne(graph′)) edges")
 # print some useful stats about the resulting subgraph
 cyclic = is_cyclic(graph′)
 verb = cyclic ? "is" : "is not"
+connected = is_connected(graph′)
 info("subgraph $verb cyclic")
+verb = connected ? "is" : "is not"
+info("subgraph $verb connected")
 info("subgraph indegree:  min=$(δin(graph′)), max=$(Δin(graph′))")
 info("subgraph outdegree: min=$(δout(graph′)), max=$(Δout(graph′))")
 info("subgraph density: $(density(graph′))")
@@ -134,6 +150,44 @@ if do_ellipsis_edges
 end
 graph = graph′
 
+# expand any regexes appearing in the library specifications
+expanded_libs = Dict{AbstractString,Vector{AbstractString}}()
+for (libname, objs) in libraries
+  mask = broadcast(o -> startswith(o, '#'), objs)
+  labels = objs[!mask]
+  regexes = map(s -> Regex(s[2:end]), objs[mask])
+
+  indices = IntSet(findin(graph.labels, labels))
+  for r in regexes
+    matching = find(o -> ismatch(r, o), graph.labels)
+    union!(indices, matching)
+  end
+  expanded_libs[libname] = graph.labels[collect(indices)]
+end
+libraries = expanded_libs
+
+
+if debug_from!=nothing && debug_to!=nothing
+  for f in libraries[debug_from]
+    index = findfirst(graph.labels, f)
+    neighs = graph.labels[out_neighbors(graph.graph, index)]
+    filter!(l -> l in libraries[debug_to], neighs)
+    if !isempty(neighs)
+      info("DEBUG: $f --> $(join(neighs, ", "))")
+    end
+  end
+end
+
+# condense libraries, if required
+libs_to_condense = filter(l -> startswith(l, '+'), collect(keys(libraries)))
+if !isempty(libs_to_condense)
+  info("condensing libraries $(join(libs_to_condense, ", "))...")
+  graph = condense_these(graph, libs_to_condense, libraries)
+end
+for l in libs_to_condense
+  delete!(libraries, l)
+end
+
 info("computing strongly connected components...")
 scc, cond_labels = strongly_connected_components(graph)
 nontrivial_scc = count(s -> length(s)>1, scc)
@@ -146,25 +200,21 @@ len_largest_scc, index_largest_scc = findmax(map(length, scc))
 info("subgraph has $(length(scc)) scc ($nontrivial_scc non-trivial, ",
      "largest=$len_largest_scc)")
 
-# apply condensation to any specified library
-del_libs = Vector{AbstractString}()
-for (libname, objs) in libraries
-  startswith(libname, '+') || continue
-
-  info("condensing library $libname...")
-  graph = condense_these(graph, objs, libname)
-  push!(del_libs, libname)
-end
-for lib in del_libs
-  delete!(libraries, lib)
-end
-
 if do_condensation
   info("condensing strongly connected components...")
   graph = condensation(graph)
 end
 
+# exclude any requested node
+if !isempty(exclude_nodes)
+  info("excluding selected nodes...")
+  exclude_regex = Regex(join(exclude_nodes, '|'))
+  exclude_indices = find(l -> ismatch(exclude_regex, l), graph.labels)
+  generator_indices = collect(setdiff!(IntSet(1:nv(graph)), exclude_indices))
+  graph = induced_subgraph(graph, generator_indices)
+end
 
+info("graph has $(nv(graph)) vertices")
 info("graph has $(ne(graph)) edges")
 if do_transitive_reduction
   info("reducing...")
@@ -176,4 +226,4 @@ info("saving to $output_filename...")
 to_dotfile(graph, output_filename; highlight=focus_regex,
                                    label_len=label_len,
                                    libraries=libraries,
-                                   cli=cli)
+                                   cli=ARGS)
